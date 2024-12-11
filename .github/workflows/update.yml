@@ -1,82 +1,87 @@
 name: update
+
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
+
 jobs:
   main:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: tibdex/github-app-token@v1.8.2
-        if: ${{ !env.ACT }}
-        id: create-app-token
+      - name: Checkout Repository
+        uses: actions/checkout@v3
         with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v3
-        if: ${{ !env.ACT }}
-        with:
-          token: ${{ steps.create-app-token.outputs.token }}
-      - name: setup git
+          # 使用默认的GITHUB_TOKEN来检出代码
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git User Information
         run: |
-          git config user.name "iptv-bot[bot]"
-          git config user.email "84861620+iptv-bot[bot]@users.noreply.github.com"
-      - uses: actions/setup-node@v3
-        if: ${{ !env.ACT }}
+          git config user.name "Grovin720-bot[bot]"
+          git config user.email "your-email@example.com"
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v3
         with:
           node-version: 20
           cache: 'npm'
-      - name: install dependencies
+
+      - name: Install Dependencies
         run: npm install
-      - name: update internal playlists
+
+      - name: Update Internal Playlists
         run: npm run playlist:update --silent >> $GITHUB_OUTPUT
         id: playlist-update
-      - name: check internal playlists
+
+      - name: Check Internal Playlists
         run: |
           npm run playlist:lint
           npm run playlist:validate
-      - name: generate public playlists
+
+      - name: Generate Public Playlists
         run: npm run playlist:generate
-      - name: generate .api/streams.json
+
+      - name: Generate .api/streams.json
         run: npm run api:generate
-      - name: update readme.md
+
+      - name: Update README.md
         run: npm run readme:update
-      - run: git status
-      - name: commit changes to /streams
+
+      - name: Add and Commit Changes to /streams
         run: |
           git add streams
-          git status
-          git commit --allow-empty -m "[Bot] Update /streams" -m "Committed by [iptv-bot](https://github.com/apps/iptv-bot) via [update](https://github.com/Grovin720/iptv-1/actions/runs/${{ github.run_id }}) workflow." -m "${{ steps.playlist-update.outputs.OUTPUT }}" --no-verify
-      - name: commit changes to readme.md
+          git commit --allow-empty -m "[Bot] Update /streams" -m "Committed by [Grovin720-bot](https://github.com/apps/Grovin720-bot) via [update](https://github.com/Grovin720/iptv-1/actions/runs/${{ github.run_id }}) workflow." -m "${{ steps.playlist-update.outputs.OUTPUT }}" --no-verify
+
+      - name: Add and Commit Changes to README.md
         run: |
           git add README.md
-          git status
-          git commit --allow-empty -m "[Bot] Update README.md" -m "Committed by [iptv-bot](https://github.com/apps/iptv-bot) via [update](https://github.com/Grovin720/iptv-1/actions/runs/${{ github.run_id }}) workflow." --no-verify
-      - name: push all changes to the repository
-        if: ${{ !env.ACT && github.ref == 'refs/heads/master' }}
+          git commit --allow-empty -m "[Bot] Update README.md" -m "Committed by [Grovin720-bot](https://github.com/apps/Grovin720-bot) via [update](https://github.com/Grovin720/iptv-1/actions/runs/${{ github.run_id }}) workflow." --no-verify
+
+      - name: Push All Changes to the Repository
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: git push
-      - name: deploy public playlists to github pages
+
+      - name: Deploy Public Playlists to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@4.1.1
-        if: ${{ !env.ACT && github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         with:
           repository-name: Grovin720/iptv-1
           branch: gh-pages
           folder: .gh-pages
-          token: ${{ steps.create-app-token.outputs.token }}
-          git-config-name: iptv-bot[bot]
-          git-config-email: 84861620+iptv-bot[bot]@users.noreply.github.com
+          token: ${{ secrets.GITHUB_TOKEN }}
+          git-config-name: Grovin720-bot[bot]
+          git-config-email: your-email@example.com
           commit-message: '[Bot] Deploy to GitHub Pages'
           clean: true
-      - name: move .api/streams.json to Grovin720/api
+
+      - name: Move .api/streams.json to Grovin720/api (如果适用)
         uses: JamesIves/github-pages-deploy-action@4.1.1
-        if: ${{ !env.ACT && github.ref == 'refs/heads/master' }}
+        if: ${{ github.ref == 'refs/heads/main' && !env.ACT }}
         with:
           repository-name: Grovin720/api
           branch: gh-pages
           folder: .api
-          token: ${{ steps.create-app-token.outputs.token }}
-          git-config-name: iptv-bot[bot]
-          git-config-email: 84861620+iptv-bot[bot]@users.noreply.github.com
-          commit-message: '[Bot] Deploy to Grovin720/api'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          git-config-name: Grovin720-bot[bot]
+          git-config-email: your-email@example.com
           clean: false
